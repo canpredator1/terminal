@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Semiconductor Supply Chain — Relationship Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0a0e1a;
+    color: #e0e6f0;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* --- Top Bar --- */
+  .top-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: rgba(12, 16, 30, 0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    z-index: 100;
+    gap: 16px;
+  }
+  .top-bar h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    white-space: nowrap;
+  }
+  .top-bar .stats {
+    font-size: 12px;
+    color: #64748b;
+    white-space: nowrap;
+  }
+  .top-bar .stats span {
+    color: #94a3b8;
+    font-weight: 500;
+  }
+
+  /* --- Search --- */
+  .search-box {
+    margin-left: auto;
+    position: relative;
+  }
+  .search-box input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 7px 12px 7px 32px;
+    font-size: 13px;
+    color: #e0e6f0;
+    width: 200px;
+    outline: none;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .search-box input:focus {
+    border-color: rgba(96,165,250,0.5);
+    background: rgba(255,255,255,0.08);
+    width: 260px;
+  }
+  .search-box input::placeholder { color: #475569; }
+  .search-box svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    fill: #475569;
+  }
+
+  /* --- Sidebar --- */
+  .sidebar {
+    position: fixed;
+    top: 56px; left: 0; bottom: 0;
+    width: 240px;
+    background: rgba(12, 16, 30, 0.88);
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(255,255,255,0.06);
+    padding: 16px;
+    overflow-y: auto;
+    z-index: 90;
+  }
+  .sidebar h3 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #475569;
+    margin-bottom: 10px;
+  }
+  .sidebar h3:not(:first-child) { margin-top: 20px; }
+
+  .filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 12px;
+    font-family: inherit;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .filter-btn:hover { background: rgba(255,255,255,0.05); color: #e0e6f0; }
+  .filter-btn.active { background: rgba(255,255,255,0.08); color: #e0e6f0; }
+  .filter-btn.active .dot { box-shadow: 0 0 6px currentColor; }
+  .filter-btn .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: box-shadow 0.15s;
+  }
+  .filter-btn .count {
+    margin-left: auto;
+    font-size: 10px;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .edge-filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 5px 10px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 11px;
+    font-family: inherit;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+  }
+  .edge-filter-btn:hover { background: rgba(255,255,255,0.05); color: #e0e6f0; }
+  .edge-filter-btn.active { background: rgba(255,255,255,0.08); color: #e0e6f0; }
+  .edge-filter-btn .eline {
+    width: 16px;
+    height: 2px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+  .edge-filter-btn .count {
+    margin-left: auto;
+    font-size: 10px;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .strength-slider {
+    margin-top: 8px;
+    padding: 0 10px;
+  }
+  .strength-slider label {
+    font-size: 11px;
+    color: #64748b;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .strength-slider label span { color: #94a3b8; font-weight: 500; }
+  .strength-slider input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.1);
+    outline: none;
+  }
+  .strength-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #60a5fa;
+    cursor: pointer;
+    border: 2px solid #0a0e1a;
+  }
+
+  /* --- Canvas --- */
+  .canvas-container {
+    position: fixed;
+    top: 56px;
+    left: 240px;
+    right: 0;
+    bottom: 0;
+  }
+  svg.graph {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* --- Tooltip --- */
+  .tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(15, 20, 35, 0.95);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 12px;
+    max-width: 320px;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.15s;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .tooltip.visible { opacity: 1; }
+  .tooltip .tt-ticker {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .tooltip .tt-company {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 8px;
+  }
+  .tooltip .tt-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+  }
+  .tooltip .tt-connections {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.6;
+  }
+  .tooltip .tt-connections strong { color: #e0e6f0; }
+
+  /* --- Edge tooltip --- */
+  .tooltip .tt-edge-from, .tooltip .tt-edge-to {
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .tooltip .tt-edge-type {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin: 6px 0;
+  }
+  .tooltip .tt-edge-detail {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.5;
+  }
+
+  /* --- Legend bottom --- */
+  .bottom-legend {
+    position: fixed;
+    bottom: 16px; right: 16px;
+    display: flex;
+    gap: 6px;
+    z-index: 90;
+  }
+  .bottom-legend .key {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: #475569;
+    background: rgba(12,16,30,0.8);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .bottom-legend .key .kd {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Zoom controls */
+  .zoom-controls {
+    position: fixed;
+    bottom: 16px;
+    left: 256px;
+    display: flex;
+    gap: 4px;
+    z-index: 90;
+  }
+  .zoom-controls button {
+    width: 32px; height: 32px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(12,16,30,0.85);
+    color: #94a3b8;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .zoom-controls button:hover { background: rgba(255,255,255,0.08); color: #e0e6f0; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>Semiconductor Supply Chain Map</h1>
+  <div class="stats"><span id="node-count">0</span> companies &middot; <span id="edge-count">0</span> relationships</div>
+  <div class="search-box">
+    <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+    <input type="text" id="search" placeholder="Search ticker or company...">
+  </div>
+</div>
+
+<div class="sidebar">
+  <h3>Company Type</h3>
+  <div id="node-filters"></div>
+
+  <h3>Relationship Type</h3>
+  <div id="edge-filters"></div>
+
+  <h3>Min Strength</h3>
+  <div class="strength-slider">
+    <label>Score: <span id="str-val">1</span> / 5</label>
+    <input type="range" id="strength-range" min="1" max="5" value="1" step="1">
+  </div>
+</div>
+
+<div class="canvas-container" id="canvas-container">
+  <svg class="graph" id="graph"></svg>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="zoom-controls">
+  <button id="zoom-in">+</button>
+  <button id="zoom-out">−</button>
+  <button id="zoom-fit">⊙</button>
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+// -- Color schemes --
+const TAG_COLORS = {
+  semiconductor: '#60a5fa',
+  foundry:       '#f472b6',
+  assembly:      '#fb923c',
+  equipment:     '#a78bfa',
+  memory:        '#34d399',
+  ip:            '#fbbf24',
+  server:        '#f87171',
+  device:        '#94a3b8',
+  energy:        '#22d3ee',
+  other:         '#64748b',
+};
+
+const TAG_LABELS = {
+  semiconductor: 'Semiconductor',
+  foundry:       'Foundry',
+  assembly:      'Assembly / Packaging',
+  equipment:     'Equipment',
+  memory:        'Memory',
+  ip:            'IP Licensing',
+  server:        'Server / Systems',
+  device:        'Device / Sensor',
+  energy:        'Energy / Solar',
+  other:         'Other',
+};
+
+const EDGE_COLORS = {
+  competitor:                '#ef4444',
+  foundry_supplier:          '#f472b6',
+  equipment_supplier:        '#a78bfa',
+  memory_supplier:           '#34d399',
+  HBM_supplier:              '#10b981',
+  IP_supplier:               '#fbbf24',
+  EDA_supplier:              '#e879f9',
+  customer:                  '#60a5fa',
+  cloud_customer:            '#38bdf8',
+  AI_partner:                '#818cf8',
+  server_partner:            '#f87171',
+  strategic_partner:         '#fb923c',
+  ecosystem_link:            '#475569',
+  supplier:                  '#94a3b8',
+  cloud_provider:            '#22d3ee',
+  AI_accelerator_dependency: '#c084fc',
+};
+
+const EDGE_LABELS = {
+  competitor:                'Competitor',
+  foundry_supplier:          'Foundry Supplier',
+  equipment_supplier:        'Equipment Supplier',
+  memory_supplier:           'Memory Supplier',
+  HBM_supplier:              'HBM Supplier',
+  IP_supplier:               'IP Supplier',
+  EDA_supplier:              'EDA Supplier',
+  customer:                  'Customer',
+  cloud_customer:            'Cloud Customer',
+  AI_partner:                'AI Partner',
+  server_partner:            'Server Partner',
+  strategic_partner:         'Strategic Partner',
+  ecosystem_link:            'Ecosystem Link',
+  supplier:                  'Supplier',
+  cloud_provider:            'Cloud Provider',
+  AI_accelerator_dependency: 'AI Accelerator Dep.',
+};
+
+// -- State --
+let activeNodeTags = new Set(Object.keys(TAG_COLORS));
+let activeEdgeTypes = new Set(Object.keys(EDGE_COLORS));
+let minStrength = 1;
+let searchQuery = '';
+let highlightedNode = null;
+let clickedNode = null;
+let graphData = null;
+
+// -- Load data --
+graphData = {"nodes": [{"id": "ADI", "label": "ADI", "company": "Analog Devices, Inc.", "tag": "semiconductor"}, {"id": "AEIS", "label": "AEIS", "company": "Advanced Energy Industries, Inc.", "tag": "equipment"}, {"id": "AIP", "label": "AIP", "company": "AIP", "tag": "ip"}, {"id": "ALAB", "label": "ALAB", "company": "Astera Labs, Inc.", "tag": "semiconductor"}, {"id": "ALGM", "label": "ALGM", "company": "Allegro MicroSystems, Inc.", "tag": "semiconductor"}, {"id": "AMAT", "label": "AMAT", "company": "Applied Materials, Inc.", "tag": "equipment"}, {"id": "AMBA", "label": "AMBA", "company": "Ambarella, Inc.", "tag": "semiconductor"}, {"id": "AMD", "label": "AMD", "company": "Advanced Micro Devices, Inc.", "tag": "semiconductor"}, {"id": "AMKR", "label": "AMKR", "company": "Amkor Technology, Inc.", "tag": "assembly"}, {"id": "AOSL", "label": "AOSL", "company": "AOSL", "tag": "semiconductor"}, {"id": "ARM", "label": "ARM", "company": "Arm Holdings plc", "tag": "ip"}, {"id": "ASML", "label": "ASML", "company": "ASML Holding N.V.", "tag": "equipment"}, {"id": "AVGO", "label": "AVGO", "company": "Broadcom Inc.", "tag": "semiconductor"}, {"id": "CEVA", "label": "CEVA", "company": "CEVA, Inc.", "tag": "ip"}, {"id": "COHR", "label": "COHR", "company": "Coherent Corp.", "tag": "equipment"}, {"id": "COHU", "label": "COHU", "company": "Cohu, Inc.", "tag": "equipment"}, {"id": "CRUS", "label": "CRUS", "company": "Cirrus Logic, Inc.", "tag": "semiconductor"}, {"id": "DIOD", "label": "DIOD", "company": "Diodes Incorporated", "tag": "semiconductor"}, {"id": "FLEX", "label": "FLEX", "company": "Flex Ltd.", "tag": "assembly"}, {"id": "FORM", "label": "FORM", "company": "FormFactor, Inc.", "tag": "equipment"}, {"id": "GFS", "label": "GFS", "company": "GlobalFoundries Inc.", "tag": "foundry"}, {"id": "GSIT", "label": "GSIT", "company": "GSIT", "tag": "memory"}, {"id": "HIMX", "label": "HIMX", "company": "Himax Technologies, Inc.", "tag": "semiconductor"}, {"id": "IMOS", "label": "IMOS", "company": "ChipMOS Technologies Inc.", "tag": "assembly"}, {"id": "INDI", "label": "INDI", "company": "indie Semiconductor, Inc.", "tag": "semiconductor"}, {"id": "INTC", "label": "INTC", "company": "Intel Corporation", "tag": "semiconductor"}, {"id": "IPGP", "label": "IPGP", "company": "IPG Photonics Corporation", "tag": "equipment"}, {"id": "IPWR", "label": "IPWR", "company": "IPWR", "tag": "semiconductor"}, {"id": "KE", "label": "KE", "company": "KE", "tag": "assembly"}, {"id": "KLAC", "label": "KLAC", "company": "KLA Corporation", "tag": "equipment"}, {"id": "KOPN", "label": "KOPN", "company": "KOPN", "tag": "device"}, {"id": "LAES", "label": "LAES", "company": "LAES", "tag": "device"}, {"id": "LASR", "label": "LASR", "company": "LASR", "tag": "equipment"}, {"id": "LFUS", "label": "LFUS", "company": "LFUS", "tag": "semiconductor"}, {"id": "LINK", "label": "LINK", "company": "LINK", "tag": "device"}, {"id": "LRCX", "label": "LRCX", "company": "Lam Research Corporation", "tag": "equipment"}, {"id": "LSCC", "label": "LSCC", "company": "Lattice Semiconductor Corporation", "tag": "semiconductor"}, {"id": "MCHP", "label": "MCHP", "company": "Microchip Technology Incorporated", "tag": "semiconductor"}, {"id": "MPWR", "label": "MPWR", "company": "Monolithic Power Systems, Inc.", "tag": "semiconductor"}, {"id": "MRAM", "label": "MRAM", "company": "Everspin Technologies, Inc.", "tag": "memory"}, {"id": "MRVL", "label": "MRVL", "company": "Marvell Technology, Inc.", "tag": "semiconductor"}, {"id": "MTSI", "label": "MTSI", "company": "MACOM Technology Solutions Holdings, Inc.", "tag": "semiconductor"}, {"id": "MU", "label": "MU", "company": "Micron Technology, Inc.", "tag": "memory"}, {"id": "MXL", "label": "MXL", "company": "MaxLinear, Inc.", "tag": "semiconductor"}, {"id": "NEON", "label": "NEON", "company": "NEON", "tag": "device"}, {"id": "NVDA", "label": "NVDA", "company": "NVIDIA Corporation", "tag": "semiconductor"}, {"id": "NVEC", "label": "NVEC", "company": "NVEC", "tag": "semiconductor"}, {"id": "NVTS", "label": "NVTS", "company": "Navitas Semiconductor Limited", "tag": "semiconductor"}, {"id": "NXPI", "label": "NXPI", "company": "NXP Semiconductors N.V.", "tag": "semiconductor"}, {"id": "OESX", "label": "OESX", "company": "OESX", "tag": "device"}, {"id": "OLED", "label": "OLED", "company": "OLED", "tag": "device"}, {"id": "ON", "label": "ON", "company": "ON Semiconductor Corporation", "tag": "semiconductor"}, {"id": "PENG", "label": "PENG", "company": "Penguin Solutions, Inc.", "tag": "server"}, {"id": "PI", "label": "PI", "company": "PI", "tag": "semiconductor"}, {"id": "PLAB", "label": "PLAB", "company": "Photronics, Inc.", "tag": "equipment"}, {"id": "PLUG", "label": "PLUG", "company": "PLUG", "tag": "energy"}, {"id": "POWI", "label": "POWI", "company": "POWI", "tag": "semiconductor"}, {"id": "PRSO", "label": "PRSO", "company": "PRSO", "tag": "semiconductor"}, {"id": "QCOM", "label": "QCOM", "company": "QUALCOMM Incorporated", "tag": "semiconductor"}, {"id": "QRVO", "label": "QRVO", "company": "Qorvo, Inc.", "tag": "semiconductor"}, {"id": "QUIK", "label": "QUIK", "company": "QuickLogic Corporation", "tag": "semiconductor"}, {"id": "RMBS", "label": "RMBS", "company": "Rambus Inc.", "tag": "ip"}, {"id": "RUN", "label": "RUN", "company": "RUN", "tag": "energy"}, {"id": "SANM", "label": "SANM", "company": "Sanmina Corporation", "tag": "assembly"}, {"id": "SIMO", "label": "SIMO", "company": "Silicon Motion Technology Corporation", "tag": "semiconductor"}, {"id": "SITM", "label": "SITM", "company": "SiTime Corporation", "tag": "semiconductor"}, {"id": "SLAB", "label": "SLAB", "company": "Silicon Laboratories Inc.", "tag": "semiconductor"}, {"id": "SMCI", "label": "SMCI", "company": "Super Micro Computer, Inc.", "tag": "server"}, {"id": "SMTC", "label": "SMTC", "company": "Semtech Corporation", "tag": "semiconductor"}, {"id": "SWKS", "label": "SWKS", "company": "Skyworks Solutions, Inc.", "tag": "semiconductor"}, {"id": "SYNA", "label": "SYNA", "company": "Synaptics Incorporated", "tag": "semiconductor"}, {"id": "TER", "label": "TER", "company": "Teradyne, Inc.", "tag": "equipment"}, {"id": "TSEM", "label": "TSEM", "company": "Tower Semiconductor Ltd.", "tag": "foundry"}, {"id": "TSM", "label": "TSM", "company": "Taiwan Semiconductor Manufacturing Company Limited", "tag": "foundry"}, {"id": "TXN", "label": "TXN", "company": "Texas Instruments Incorporated", "tag": "semiconductor"}, {"id": "VECO", "label": "VECO", "company": "Veeco Instruments Inc.", "tag": "equipment"}, {"id": "WATT", "label": "WATT", "company": "WATT", "tag": "device"}, {"id": "WKEY", "label": "WKEY", "company": "WKEY", "tag": "device"}], "edges": [{"from": "ADI", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "AEIS", "to": "AMAT", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "AEIS", "to": "LRCX", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "AEIS", "to": "TSM", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "AIP", "to": "ARM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AIP", "to": "INTC", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AIP", "to": "LINK", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AIP", "to": "NXPI", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AIP", "to": "QCOM", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AIP", "to": "TSM", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AIP", "to": "TXN", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "MCHP", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "ALAB", "to": "MRVL", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "ALAB", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "RMBS", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "RUN", "type": "strategic_partner", "direction": "lateral", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "AMKR", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "NVDA", "type": "ecosystem_link", "direction": "lateral", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "ALAB", "to": "AVGO", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "LINK", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "MCHP", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "MRVL", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALAB", "to": "WATT", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALGM", "to": "TSEM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ALGM", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "ARM", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "INTC", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "NVDA", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "QCOM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "INTC", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "LSCC", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "NVDA", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "QCOM", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMBA", "to": "TXN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "LSCC", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "AMD", "to": "QCOM", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "AMD", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "AMD", "to": "INTC", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "NVDA", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "ADI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "ARM", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "GFS", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "MRVL", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "NXPI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "INTC", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "NVDA", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "SANM", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMD", "to": "MU", "type": "memory_supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "AMD", "to": "WATT", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMKR", "to": "NVDA", "type": "customer", "direction": "downstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "AMKR", "to": "ON", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMKR", "to": "QCOM", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "AMKR", "to": "AMD", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "AMKR", "to": "TSM", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "AOSL", "to": "DIOD", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AOSL", "to": "MPWR", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AOSL", "to": "ON", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AOSL", "to": "SMTC", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AOSL", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "AOSL", "to": "INTC", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "ARM", "to": "QCOM", "type": "IP_supplier", "direction": "downstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "ARM", "to": "QCOM", "type": "strategic_partner", "direction": "lateral", "strength": 5, "confidence": 4, "evidence": "sec_filing"}, {"from": "ARM", "to": "INTC", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ARM", "to": "WATT", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ARM", "to": "NVDA", "type": "ecosystem_link", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "ASML", "to": "INTC", "type": "customer", "direction": "downstream", "strength": 5, "confidence": 3, "evidence": "manual_seed"}, {"from": "ASML", "to": "TSM", "type": "customer", "direction": "downstream", "strength": 5, "confidence": 3, "evidence": "manual_seed"}, {"from": "AVGO", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "AVGO", "to": "MRVL", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "AVGO", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "AVGO", "type": "IP_supplier", "direction": "downstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "CEVA", "to": "MCHP", "type": "IP_supplier", "direction": "downstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "CEVA", "to": "MRVL", "type": "IP_supplier", "direction": "downstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "CEVA", "to": "NXPI", "type": "IP_supplier", "direction": "downstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "CEVA", "to": "ARM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "CRUS", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "GFS", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "INTC", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "ON", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "QCOM", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "SLAB", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "SYNA", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "TXN", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CEVA", "to": "QCOM", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "COHR", "to": "MRVL", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "COHR", "to": "NVDA", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "COHR", "to": "AVGO", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 2, "evidence": "manual_seed"}, {"from": "COHU", "to": "TSM", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "CRUS", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "CRUS", "to": "ADI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "GFS", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "MPWR", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "SWKS", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "SYNA", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "ADI", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "MPWR", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "SWKS", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "SYNA", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "CRUS", "to": "TXN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "DIOD", "to": "NXPI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "DIOD", "to": "ON", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "DIOD", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "DIOD", "to": "ON", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "DIOD", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 2, "confidence": 2, "evidence": "manual_seed"}, {"from": "FORM", "to": "NVDA", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "FORM", "to": "TSM", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "GFS", "to": "TSEM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "GFS", "to": "TSM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "GFS", "to": "AMAT", "type": "equipment_supplier", "direction": "upstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "GFS", "to": "ASML", "type": "equipment_supplier", "direction": "upstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "GFS", "to": "KLAC", "type": "equipment_supplier", "direction": "upstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "GFS", "to": "LRCX", "type": "equipment_supplier", "direction": "upstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "GFS", "to": "ON", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "GSIT", "to": "AMD", "type": "HBM_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "GSIT", "to": "AMD", "type": "memory_supplier", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "GSIT", "to": "NVDA", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "GSIT", "to": "ON", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "GFS", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "LSCC", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "QCOM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "SYNA", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "OLED", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "LSCC", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "PLUG", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "HIMX", "to": "QCOM", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "IMOS", "to": "AMKR", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "IMOS", "to": "ON", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "IMOS", "to": "AMD", "type": "customer", "direction": "downstream", "strength": 2, "confidence": 2, "evidence": "manual_seed"}, {"from": "IMOS", "to": "NVDA", "type": "customer", "direction": "downstream", "strength": 2, "confidence": 2, "evidence": "manual_seed"}, {"from": "INDI", "to": "ARM", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INDI", "to": "GFS", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INDI", "to": "MPWR", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INDI", "to": "MU", "type": "HBM_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INDI", "to": "NXPI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INDI", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INDI", "to": "MU", "type": "memory_supplier", "direction": "upstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "INDI", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "GFS", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "INTC", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "INTC", "to": "AMD", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "ARM", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "MU", "type": "HBM_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "NVDA", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "QCOM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "MU", "type": "memory_supplier", "direction": "upstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "ALAB", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "AMD", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "NVDA", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "ON", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "QCOM", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "INTC", "to": "WATT", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "IPGP", "to": "COHR", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "IPGP", "to": "DIOD", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "IPWR", "to": "ON", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "IPWR", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "IPWR", "to": "DIOD", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "IPWR", "to": "ON", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "IPWR", "to": "PLUG", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "IPWR", "to": "TXN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "KE", "to": "FLEX", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "KE", "to": "SANM", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "KLAC", "to": "AMAT", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "KLAC", "to": "ASML", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "KOPN", "to": "OLED", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "LAES", "to": "GFS", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "LAES", "to": "INTC", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "LAES", "to": "LSCC", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "LAES", "to": "LSCC", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "LAES", "to": "TSM", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "LASR", "to": "COHR", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "LASR", "to": "IPGP", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "LFUS", "to": "ON", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "LFUS", "to": "SMTC", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "LRCX", "to": "AMAT", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "LRCX", "to": "MU", "type": "customer", "direction": "downstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "LSCC", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "LSCC", "to": "AMKR", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "LSCC", "to": "INTC", "type": "competitor", "direction": "competitor", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "LSCC", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "MCHP", "to": "NEON", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "MPWR", "to": "ADI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MPWR", "to": "NXPI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MPWR", "to": "ON", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MPWR", "to": "SMTC", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MPWR", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MPWR", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "MRAM", "to": "INTC", "type": "HBM_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRAM", "to": "MCHP", "type": "HBM_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRAM", "to": "MU", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRAM", "to": "INTC", "type": "memory_supplier", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRAM", "to": "MCHP", "type": "memory_supplier", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRVL", "to": "AMD", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRVL", "to": "ARM", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRVL", "to": "RMBS", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRVL", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "MRVL", "to": "MU", "type": "memory_supplier", "direction": "upstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRVL", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "MRVL", "to": "LINK", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "MRVL", "to": "ON", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "MTSI", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "MTSI", "to": "MCHP", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "MTSI", "to": "MRVL", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "MTSI", "to": "MXL", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "MTSI", "to": "NXPI", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "MTSI", "to": "QRVO", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "MTSI", "to": "SMTC", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "MTSI", "to": "SWKS", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "MTSI", "to": "ADI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MTSI", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "MU", "to": "LINK", "type": "HBM_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "MU", "to": "LINK", "type": "memory_supplier", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "MU", "to": "NVDA", "type": "HBM_supplier", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "MU", "to": "AMD", "type": "HBM_supplier", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "MXL", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "NEON", "to": "TXN", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVDA", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "NVDA", "to": "AMD", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVDA", "to": "MU", "type": "HBM_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVDA", "to": "SMCI", "type": "server_partner", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVDA", "to": "MU", "type": "memory_supplier", "direction": "upstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVDA", "to": "AMD", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVDA", "to": "INTC", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVDA", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVDA", "to": "WATT", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVEC", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVEC", "to": "AVGO", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVEC", "to": "NEON", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVTS", "to": "GFS", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "NVTS", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "NVTS", "to": "ON", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVTS", "to": "QRVO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NVTS", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NXPI", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "NXPI", "to": "ADI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NXPI", "to": "ARM", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NXPI", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NXPI", "to": "MCHP", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NXPI", "to": "QCOM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NXPI", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "NXPI", "to": "MRVL", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "NXPI", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "OESX", "to": "WATT", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ON", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ON", "to": "DIOD", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ON", "to": "NXPI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "ON", "to": "AVGO", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "ON", "to": "NXPI", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "PENG", "to": "AMD", "type": "AI_accelerator_dependency", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "PENG", "to": "MU", "type": "memory_supplier", "direction": "upstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "PENG", "to": "NVDA", "type": "supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "PENG", "to": "AMD", "type": "supplier", "direction": "upstream", "strength": 2, "confidence": 2, "evidence": "manual_seed"}, {"from": "PI", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "PI", "to": "INTC", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "PI", "to": "NXPI", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "PI", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "PLAB", "to": "INTC", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "PLAB", "to": "TSM", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "POWI", "to": "NVTS", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "POWI", "to": "ON", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "POWI", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "POWI", "to": "LINK", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "PRSO", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "PRSO", "to": "QCOM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "PRSO", "to": "LINK", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "QCOM", "to": "NXPI", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 3, "evidence": "sec_filing"}, {"from": "QCOM", "to": "NVDA", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 3, "evidence": "sec_filing"}, {"from": "QCOM", "to": "QRVO", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 3, "evidence": "sec_filing"}, {"from": "QCOM", "to": "SWKS", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 3, "evidence": "sec_filing"}, {"from": "QCOM", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 5, "confidence": 3, "evidence": "sec_filing"}, {"from": "QCOM", "to": "NXPI", "type": "strategic_partner", "direction": "lateral", "strength": 4, "confidence": 5, "evidence": "sec_filing"}, {"from": "QCOM", "to": "AVGO", "type": "strategic_partner", "direction": "lateral", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "GFS", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "NVDA", "type": "strategic_partner", "direction": "lateral", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "QRVO", "type": "strategic_partner", "direction": "lateral", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "SWKS", "type": "strategic_partner", "direction": "lateral", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "TXN", "type": "strategic_partner", "direction": "lateral", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "PLUG", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "QCOM", "to": "WATT", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "QRVO", "to": "ADI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QRVO", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QRVO", "to": "SWKS", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QRVO", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "QRVO", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "QRVO", "to": "SWKS", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "QUIK", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "QUIK", "to": "GFS", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QUIK", "to": "LSCC", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "QUIK", "to": "MCHP", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "QUIK", "to": "NXPI", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "QUIK", "to": "ON", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "QUIK", "to": "SLAB", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "AMD", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "AVGO", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "LINK", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "MPWR", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "MRVL", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "MU", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "NVDA", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "QCOM", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "SIMO", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "TXN", "type": "IP_supplier", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "RMBS", "to": "INTC", "type": "IP_supplier", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "SANM", "to": "FLEX", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SIMO", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "SIMO", "to": "MCHP", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SIMO", "to": "MU", "type": "HBM_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SIMO", "to": "MU", "type": "memory_supplier", "direction": "upstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "SIMO", "to": "MXL", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "SIMO", "to": "SYNA", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "SITM", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 5, "confidence": 5, "evidence": "sec_filing"}, {"from": "SITM", "to": "DIOD", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SITM", "to": "MCHP", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SITM", "to": "SWKS", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SITM", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SITM", "to": "DIOD", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "SITM", "to": "MCHP", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "SITM", "to": "SWKS", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "SITM", "to": "TXN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "SLAB", "to": "ARM", "type": "IP_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SLAB", "to": "MCHP", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SLAB", "to": "NXPI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SLAB", "to": "QCOM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SLAB", "to": "SYNA", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SLAB", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SLAB", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SLAB", "to": "RUN", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "SMCI", "to": "NVDA", "type": "supplier", "direction": "upstream", "strength": 5, "confidence": 3, "evidence": "manual_seed"}, {"from": "SMCI", "to": "AMD", "type": "AI_accelerator_dependency", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SMCI", "to": "INTC", "type": "AI_accelerator_dependency", "direction": "upstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SMCI", "to": "AMD", "type": "supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "SMCI", "to": "INTC", "type": "supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "SMTC", "to": "ON", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SMTC", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "SMTC", "to": "LINK", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "SWKS", "to": "ADI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SWKS", "to": "AVGO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SWKS", "to": "CRUS", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SWKS", "to": "NXPI", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SWKS", "to": "QCOM", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SWKS", "to": "QCOM", "type": "strategic_partner", "direction": "lateral", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SWKS", "to": "QRVO", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SWKS", "to": "TXN", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "SWKS", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "SWKS", "to": "SLAB", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "SYNA", "to": "PENG", "type": "server_partner", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "SYNA", "to": "TSM", "type": "foundry_supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "SYNA", "to": "AVGO", "type": "ecosystem_link", "direction": "lateral", "strength": 2, "confidence": 4, "evidence": "sec_filing"}, {"from": "TER", "to": "COHU", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "TER", "to": "FLEX", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "TSEM", "to": "GFS", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "TSEM", "to": "INTC", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "TSEM", "to": "AMAT", "type": "equipment_supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "TSEM", "to": "KLAC", "type": "equipment_supplier", "direction": "upstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "TSEM", "to": "TSM", "type": "competitor", "direction": "competitor", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "TSM", "to": "AMD", "type": "customer", "direction": "downstream", "strength": 5, "confidence": 4, "evidence": "sec_filing"}, {"from": "TSM", "to": "ASML", "type": "equipment_supplier", "direction": "upstream", "strength": 5, "confidence": 3, "evidence": "manual_seed"}, {"from": "TSM", "to": "NVDA", "type": "customer", "direction": "downstream", "strength": 5, "confidence": 3, "evidence": "manual_seed"}, {"from": "TSM", "to": "AVGO", "type": "customer", "direction": "downstream", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "TSM", "to": "AMAT", "type": "equipment_supplier", "direction": "upstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "TSM", "to": "KLAC", "type": "equipment_supplier", "direction": "upstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "TSM", "to": "LRCX", "type": "equipment_supplier", "direction": "upstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "TSM", "to": "QCOM", "type": "customer", "direction": "downstream", "strength": 4, "confidence": 3, "evidence": "manual_seed"}, {"from": "TSM", "to": "ADI", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "VECO", "to": "AMAT", "type": "competitor", "direction": "competitor", "strength": 4, "confidence": 4, "evidence": "sec_filing"}, {"from": "VECO", "to": "INTC", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "VECO", "to": "TSM", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 2, "evidence": "manual_seed"}, {"from": "WKEY", "to": "GFS", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "WKEY", "to": "LSCC", "type": "customer", "direction": "downstream", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "WKEY", "to": "LSCC", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}, {"from": "WKEY", "to": "TSM", "type": "strategic_partner", "direction": "lateral", "strength": 3, "confidence": 4, "evidence": "sec_filing"}]};
+initGraph(graphData);
+
+
+function initGraph(data) {
+  const nodeIds = new Set(data.nodes.map(n => n.id));
+  data.edges = data.edges.filter(e => nodeIds.has(e.from) && nodeIds.has(e.to));
+  data.edges.forEach(e => {
+    e.source = e.from;
+    e.target = e.to;
+  });
+  const container = document.getElementById('canvas-container');
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+  const svg = d3.select('#graph');
+  const tooltip = document.getElementById('tooltip');
+
+  // Connection counts
+  const connectionCount = {};
+  data.edges.forEach(e => {
+    connectionCount[e.from] = (connectionCount[e.from] || 0) + 1;
+    connectionCount[e.to] = (connectionCount[e.to] || 0) + 1;
+  });
+
+  // Size nodes by connections
+  data.nodes.forEach(n => {
+    n.connections = connectionCount[n.id] || 0;
+  });
+
+  // Stats
+  document.getElementById('node-count').textContent = data.nodes.length;
+  document.getElementById('edge-count').textContent = data.edges.length;
+
+  // Build node filters
+  const tagCounts = {};
+  data.nodes.forEach(n => { tagCounts[n.tag] = (tagCounts[n.tag] || 0) + 1; });
+  const nodeFiltersEl = document.getElementById('node-filters');
+  Object.keys(TAG_COLORS).forEach(tag => {
+    if (!tagCounts[tag]) return;
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn active';
+    btn.innerHTML = `<span class="dot" style="background:${TAG_COLORS[tag]}"></span>${TAG_LABELS[tag]}<span class="count">${tagCounts[tag]}</span>`;
+    btn.onclick = () => {
+      if (activeNodeTags.has(tag)) activeNodeTags.delete(tag); else activeNodeTags.add(tag);
+      btn.classList.toggle('active');
+      updateVisibility();
+    };
+    nodeFiltersEl.appendChild(btn);
+  });
+
+  // Build edge filters
+  const edgeCounts = {};
+  data.edges.forEach(e => { edgeCounts[e.type] = (edgeCounts[e.type] || 0) + 1; });
+  const edgeFiltersEl = document.getElementById('edge-filters');
+  Object.keys(EDGE_COLORS).forEach(type => {
+    if (!edgeCounts[type]) return;
+    const btn = document.createElement('button');
+    btn.className = 'edge-filter-btn active';
+    btn.innerHTML = `<span class="eline" style="background:${EDGE_COLORS[type]}"></span>${EDGE_LABELS[type]}<span class="count">${edgeCounts[type]}</span>`;
+    btn.onclick = () => {
+      if (activeEdgeTypes.has(type)) activeEdgeTypes.delete(type); else activeEdgeTypes.add(type);
+      btn.classList.toggle('active');
+      updateVisibility();
+    };
+    edgeFiltersEl.appendChild(btn);
+  });
+
+  // Strength slider
+  const strengthRange = document.getElementById('strength-range');
+  const strVal = document.getElementById('str-val');
+  strengthRange.oninput = () => {
+    minStrength = +strengthRange.value;
+    strVal.textContent = minStrength;
+    updateVisibility();
+  };
+
+  // Search
+  const searchInput = document.getElementById('search');
+  searchInput.oninput = () => {
+    searchQuery = searchInput.value.toLowerCase().trim();
+    const exactMatch = data.nodes.find(n => n.id.toLowerCase() === searchQuery || n.company.toLowerCase() === searchQuery);
+    if (exactMatch) {
+      clickedNode = exactMatch.id;
+    } else if (searchQuery === '') {
+      clickedNode = null;
+    }
+    updateHighlight();
+    updateVisibility();
+  };
+
+  // D3 force simulation
+  const g = svg.append('g');
+
+  // Zoom
+  const zoom = d3.zoom()
+    .scaleExtent([0.1, 6])
+    .on('zoom', (event) => {
+      g.attr('transform', event.transform);
+    });
+  svg.call(zoom);
+
+  // Zoom controls
+  document.getElementById('zoom-in').onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 1.4);
+  document.getElementById('zoom-out').onclick = () => svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+  document.getElementById('zoom-fit').onclick = () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity.translate(width/2, height/2).scale(0.4));
+
+  // Arrow markers
+  const defs = svg.append('defs');
+  Object.keys(EDGE_COLORS).forEach(type => {
+    defs.append('marker')
+      .attr('id', `arrow-${type}`)
+      .attr('viewBox', '0 0 10 10')
+      .attr('refX', 28)
+      .attr('refY', 5)
+      .attr('markerWidth', 5)
+      .attr('markerHeight', 5)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M 0 0 L 10 5 L 0 10 z')
+      .attr('fill', EDGE_COLORS[type])
+      .attr('opacity', 0.6);
+  });
+
+  // Links
+  const linkGroup = g.append('g').attr('class', 'links');
+  const link = linkGroup.selectAll('g.edge')
+    .data(data.edges)
+    .join('g')
+    .attr('class', 'edge');
+    
+  const linkLine = link.append('line')
+    .attr('stroke', d => EDGE_COLORS[d.type] || '#333')
+    .attr('stroke-width', d => 0.5 + d.strength * 0.4)
+    .attr('stroke-opacity', 0.25)
+    .attr('marker-end', d => d.direction !== 'competitor' && d.direction !== 'lateral' ? `url(#arrow-${d.type})` : null);
+    
+  const linkTextBg = link.append('text')
+    .text(d => EDGE_LABELS[d.type] || d.type)
+    .attr('fill', 'none')
+    .attr('stroke', '#0c101e')
+    .attr('stroke-width', '4px')
+    .attr('stroke-linejoin', 'round')
+    .attr('font-size', '10px')
+    .attr('font-weight', '700')
+    .attr('text-anchor', 'middle')
+    .attr('pointer-events', 'none')
+    .attr('opacity', 0);
+
+  const linkText = link.append('text')
+    .text(d => EDGE_LABELS[d.type] || d.type)
+    .attr('fill', d => EDGE_COLORS[d.type] || '#e0e6f0')
+    .attr('font-size', '10px')
+    .attr('font-weight', '700')
+    .attr('text-anchor', 'middle')
+    .attr('pointer-events', 'none')
+    .attr('opacity', 0);
+
+  // Nodes
+  const nodeGroup = g.append('g').attr('class', 'nodes');
+  const node = nodeGroup.selectAll('g')
+    .data(data.nodes)
+    .join('g')
+    .attr('cursor', 'pointer')
+    .call(d3.drag()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended));
+
+  // Node circles
+  node.append('circle')
+    .attr('r', d => 5 + Math.sqrt(d.connections) * 2.5)
+    .attr('fill', d => TAG_COLORS[d.tag] || TAG_COLORS.other)
+    .attr('fill-opacity', 0.85)
+    .attr('stroke', d => TAG_COLORS[d.tag] || TAG_COLORS.other)
+    .attr('stroke-width', 1.5)
+    .attr('stroke-opacity', 0.3);
+
+  // Glow for high-connection nodes
+  node.filter(d => d.connections >= 15)
+    .select('circle')
+    .attr('filter', 'url(#glow)');
+
+  // Glow filter
+  const glowFilter = defs.append('filter').attr('id', 'glow');
+  glowFilter.append('feGaussianBlur').attr('stdDeviation', '3').attr('result', 'glow');
+  const feMerge = glowFilter.append('feMerge');
+  feMerge.append('feMergeNode').attr('in', 'glow');
+  feMerge.append('feMergeNode').attr('in', 'SourceGraphic');
+
+  // Labels
+  node.append('text')
+    .text(d => d.label)
+    .attr('font-size', d => d.connections >= 20 ? 11 : d.connections >= 10 ? 9 : 7)
+    .attr('font-weight', d => d.connections >= 15 ? 600 : 400)
+    .attr('fill', '#c8d0e0')
+    .attr('text-anchor', 'middle')
+    .attr('dy', d => -(8 + Math.sqrt(d.connections) * 2.5))
+    .attr('pointer-events', 'none')
+    .attr('opacity', d => d.connections >= 5 ? 1 : 0.7);
+
+  // Simulation
+  const simulation = d3.forceSimulation(data.nodes)
+    .force('link', d3.forceLink(data.edges).id(d => d.id).distance(d => 80 + (5 - d.strength) * 20).strength(d => 0.1 + d.strength * 0.05))
+    .force('charge', d3.forceManyBody().strength(d => -100 - d.connections * 8))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius(d => 12 + Math.sqrt(d.connections) * 3))
+    .force('x', d3.forceX(width / 2).strength(0.03))
+    .force('y', d3.forceY(height / 2).strength(0.03))
+    .alphaDecay(0.015);
+
+  simulation.on('tick', () => {
+    linkLine
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+    linkTextBg
+      .attr('x', d => (d.source.x + d.target.x) / 2)
+      .attr('y', d => (d.source.y + d.target.y) / 2 - 5)
+      .attr('transform', d => {
+        const dx = d.target.x - d.source.x;
+        const dy = d.target.y - d.source.y;
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (angle > 90 || angle < -90) angle += 180;
+        return `rotate(${angle}, ${(d.source.x + d.target.x) / 2}, ${(d.source.y + d.target.y) / 2})`;
+      });
+    linkText
+      .attr('x', d => (d.source.x + d.target.x) / 2)
+      .attr('y', d => (d.source.y + d.target.y) / 2 - 5)
+      .attr('transform', d => {
+        const dx = d.target.x - d.source.x;
+        const dy = d.target.y - d.source.y;
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (angle > 90 || angle < -90) angle += 180;
+        return `rotate(${angle}, ${(d.source.x + d.target.x) / 2}, ${(d.source.y + d.target.y) / 2})`;
+      });
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+
+  // Background click to clear
+  svg.on('click', () => {
+    clickedNode = null;
+    updateHighlight();
+  });
+
+  // Click to isolate
+  node.on('click', (event, d) => {
+    clickedNode = clickedNode === d.id ? null : d.id;
+    updateHighlight();
+    event.stopPropagation();
+  });
+
+  // Hover
+  node.on('mouseenter', (event, d) => {
+    highlightedNode = d.id;
+    updateHighlight();
+    const related = data.edges.filter(e => e.from === d.id || e.to === d.id);
+    const upstream = related.filter(e => e.direction === 'upstream' && e.from === d.id).map(e => e.to);
+    const downstream = related.filter(e => e.direction === 'downstream' && e.from === d.id).map(e => e.to);
+    const competitors = related.filter(e => e.direction === 'competitor').map(e => e.from === d.id ? e.to : e.from);
+    const lateral = related.filter(e => e.direction === 'lateral').map(e => e.from === d.id ? e.to : e.from);
+
+    let html = `<div class="tt-ticker" style="color:${TAG_COLORS[d.tag]}">${d.label}</div>`;
+    html += `<div class="tt-company">${d.company}</div>`;
+    html += `<div class="tt-tag" style="background:${TAG_COLORS[d.tag]}22;color:${TAG_COLORS[d.tag]}">${TAG_LABELS[d.tag] || d.tag}</div>`;
+    html += `<div class="tt-connections">`;
+    html += `<strong>${related.length}</strong> total relationships<br>`;
+    if (upstream.length) html += `↑ <strong>${upstream.length}</strong> upstream suppliers<br>`;
+    if (downstream.length) html += `↓ <strong>${downstream.length}</strong> downstream customers<br>`;
+    if (competitors.length) html += `⚔ <strong>${competitors.length}</strong> competitors<br>`;
+    if (lateral.length) html += `↔ <strong>${lateral.length}</strong> lateral partners<br>`;
+    html += `</div>`;
+    tooltip.innerHTML = html;
+    tooltip.classList.add('visible');
+    positionTooltip(event);
+  });
+
+  node.on('mousemove', (event) => positionTooltip(event));
+  node.on('mouseleave', () => {
+    highlightedNode = null;
+    updateHighlight();
+    tooltip.classList.remove('visible');
+  });
+
+  // Edge hover
+  linkLine.on('mouseenter', (event, d) => {
+    const fromNode = data.nodes.find(n => n.id === (typeof d.source === 'object' ? d.source.id : d.from));
+    const toNode = data.nodes.find(n => n.id === (typeof d.target === 'object' ? d.target.id : d.to));
+    let html = `<span class="tt-edge-from" style="color:${TAG_COLORS[fromNode?.tag]}">${fromNode?.label || d.from}</span>`;
+    html += ` → `;
+    html += `<span class="tt-edge-to" style="color:${TAG_COLORS[toNode?.tag]}">${toNode?.label || d.to}</span>`;
+    html += `<br><div class="tt-edge-type" style="background:${EDGE_COLORS[d.type]}22;color:${EDGE_COLORS[d.type]}">${EDGE_LABELS[d.type] || d.type}</div>`;
+    html += `<div class="tt-edge-detail">`;
+    html += `Strength: ${'★'.repeat(d.strength)}${'☆'.repeat(5-d.strength)}<br>`;
+    html += `Confidence: ${'●'.repeat(d.confidence)}${'○'.repeat(5-d.confidence)}<br>`;
+    html += `Direction: ${d.direction}<br>`;
+    html += `Source: ${d.evidence}`;
+    html += `</div>`;
+    tooltip.innerHTML = html;
+    tooltip.classList.add('visible');
+    positionTooltip(event);
+  });
+  linkLine.on('mousemove', (event) => positionTooltip(event));
+  linkLine.on('mouseleave', () => tooltip.classList.remove('visible'));
+
+  function positionTooltip(event) {
+    const x = event.clientX + 14;
+    const y = event.clientY + 14;
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+    tooltip.style.left = (x + tw > window.innerWidth ? event.clientX - tw - 10 : x) + 'px';
+    tooltip.style.top = (y + th > window.innerHeight ? event.clientY - th - 10 : y) + 'px';
+  }
+
+  function dragstarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.1).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+  function dragended(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  // -- Visibility / Filter --
+  function updateVisibility() {
+    const visibleNodes = new Set();
+    data.nodes.forEach(n => {
+      let visible = activeNodeTags.has(n.tag);
+      if (searchQuery && visible) {
+        visible = n.id.toLowerCase().includes(searchQuery) || n.company.toLowerCase().includes(searchQuery);
+      }
+      if (visible) visibleNodes.add(n.id);
+    });
+
+    node.attr('opacity', d => visibleNodes.has(d.id) ? 1 : 0.06);
+    node.attr('pointer-events', d => visibleNodes.has(d.id) ? 'all' : 'none');
+
+    link.attr('opacity', d => {
+      const sourceId = typeof d.source === 'object' ? d.source.id : d.from;
+      const targetId = typeof d.target === 'object' ? d.target.id : d.to;
+      const nodesVisible = visibleNodes.has(sourceId) && visibleNodes.has(targetId);
+      const typeVisible = activeEdgeTypes.has(d.type);
+      const strengthOk = d.strength >= minStrength;
+      return nodesVisible && typeVisible && strengthOk ? 0.3 : 0.02;
+    });
+    link.attr('pointer-events', d => {
+      const sourceId = typeof d.source === 'object' ? d.source.id : d.from;
+      const targetId = typeof d.target === 'object' ? d.target.id : d.to;
+      const nodesVisible = visibleNodes.has(sourceId) && visibleNodes.has(targetId);
+      const typeVisible = activeEdgeTypes.has(d.type);
+      const strengthOk = d.strength >= minStrength;
+      return nodesVisible && typeVisible && strengthOk ? 'all' : 'none';
+    });
+
+    // Update visible counts
+    const visibleEdges = data.edges.filter(e => {
+      const sourceId = typeof e.source === 'object' ? e.source.id : e.from;
+      const targetId = typeof e.target === 'object' ? e.target.id : e.to;
+      return visibleNodes.has(sourceId) && visibleNodes.has(targetId) && activeEdgeTypes.has(e.type) && e.strength >= minStrength;
+    });
+    document.getElementById('node-count').textContent = visibleNodes.size;
+    document.getElementById('edge-count').textContent = visibleEdges.length;
+  }
+
+  function updateHighlight() {
+    const focusNode = clickedNode || highlightedNode;
+    if (focusNode) {
+      const connectedNodes = new Set([focusNode]);
+      data.edges.forEach(e => {
+        const sid = typeof e.source === 'object' ? e.source.id : e.from;
+        const tid = typeof e.target === 'object' ? e.target.id : e.to;
+        if (sid === focusNode) connectedNodes.add(tid);
+        if (tid === focusNode) connectedNodes.add(sid);
+      });
+      node.select('circle').attr('fill-opacity', d => connectedNodes.has(d.id) ? 1 : 0.08);
+      node.select('text').attr('opacity', d => connectedNodes.has(d.id) ? 1 : 0.08);
+      linkLine.attr('stroke-opacity', d => {
+        const sid = typeof d.source === 'object' ? d.source.id : d.from;
+        const tid = typeof d.target === 'object' ? d.target.id : d.to;
+        return sid === focusNode || tid === focusNode ? 1.0 : 0.03;
+      });
+      linkLine.attr('stroke-width', d => {
+        const sid = typeof d.source === 'object' ? d.source.id : d.from;
+        const tid = typeof d.target === 'object' ? d.target.id : d.to;
+        return sid === focusNode || tid === focusNode ? 2.5 + d.strength * 1.5 : 0.5 + d.strength * 0.4;
+      });
+      if (clickedNode) {
+        linkTextBg.attr('opacity', d => {
+          const sid = typeof d.source === 'object' ? d.source.id : d.from;
+          const tid = typeof d.target === 'object' ? d.target.id : d.to;
+          return sid === clickedNode || tid === clickedNode ? 1 : 0;
+        });
+        linkText.attr('opacity', d => {
+          const sid = typeof d.source === 'object' ? d.source.id : d.from;
+          const tid = typeof d.target === 'object' ? d.target.id : d.to;
+          return sid === clickedNode || tid === clickedNode ? 1 : 0;
+        });
+      } else {
+        linkTextBg.attr('opacity', 0);
+        linkText.attr('opacity', 0);
+      }
+    } else {
+      node.select('circle').attr('fill-opacity', 0.85);
+      node.select('text').attr('opacity', d => d.connections >= 5 ? 1 : 0.7);
+      linkLine.attr('stroke-opacity', 0.25);
+      linkLine.attr('stroke-width', d => 0.5 + d.strength * 0.4);
+      linkText.attr('opacity', 0);
+      linkTextBg.attr('opacity', 0);
+    }
+  }
+
+  // Initial fit
+  setTimeout(() => {
+    svg.call(zoom.transform, d3.zoomIdentity.translate(width/2, height/2).scale(0.5).translate(-width/2, -height/2));
+  }, 2000);
+}
+</script>
+</body>
+</html>

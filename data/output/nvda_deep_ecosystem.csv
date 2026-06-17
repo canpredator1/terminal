@@ -1,0 +1,31 @@
+source_company,target_company,category,relationship_type
+Nvidia,OpenAI,Investment,AI_Model_Builder
+Nvidia,Anthropic,Investment,AI_Model_Builder
+Nvidia,Mistral AI,Investment,AI_Model_Builder
+Nvidia,Cohere,Investment,AI_Model_Builder
+Nvidia,xAI,Investment,AI_Model_Builder
+Nvidia,Perplexity,Investment,AI_Search
+Nvidia,CoreWeave,Investment,GPU_Cloud_Provider
+Nvidia,Lambda Labs,Investment,GPU_Cloud_Provider
+Nvidia,Figure AI,Investment,Robotics
+Nvidia,Wayve,Investment,Autonomous_Vehicles
+TSMC,Nvidia,Supply Chain,Primary_Foundry
+SK Hynix,Nvidia,Supply Chain,HBM_Memory_Supplier
+Micron,Nvidia,Supply Chain,HBM_Memory_Supplier
+Samsung,Nvidia,Supply Chain,Memory_and_Foundry_Supplier
+ASE Technology,Nvidia,Supply Chain,Advanced_Packaging
+Foxconn,Nvidia,Supply Chain,Server_Manufacturing
+Wistron,Nvidia,Supply Chain,Server_Manufacturing
+Nvidia,Microsoft,Customer,Cloud_Hyperscaler
+Nvidia,Meta,Customer,Hyperscaler
+Nvidia,Google,Customer,Cloud_Hyperscaler
+Nvidia,Amazon (AWS),Customer,Cloud_Hyperscaler
+Nvidia,Oracle,Customer,Cloud_Hyperscaler
+Nvidia,Dell Technologies,OEM Partner,AI_Server_Systems
+Nvidia,Supermicro,OEM Partner,AI_Server_Systems
+Nvidia,Cisco,OEM Partner,Networking_and_Systems
+Nvidia,HPE,OEM Partner,Enterprise_Systems
+AMD,Nvidia,Competitor,GPU_and_AI_Chips
+Intel,Nvidia,Competitor,AI_Accelerators
+Groq,Nvidia,Competitor,AI_Inference_Chips
+Cerebras,Nvidia,Competitor,Wafer_Scale_AI_Chips
