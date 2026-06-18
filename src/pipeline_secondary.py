@@ -7,6 +7,7 @@ import datetime
 import requests
 
 from src.db_schema import DEFAULT_DB_PATH
+from src.news_relevance import classify_news, extract_yahoo_related_tickers
 from src.tickers import TICKERS
 
 def get_simple_sentiment(text):
@@ -42,6 +43,7 @@ def populate_secondary():
         try:
             t = yf.Ticker(ticker)
             info = t.info
+            company_name = info.get('longName') or info.get('shortName') or ticker
             
             # Valuation snapshot
             val_rows.append((
@@ -103,12 +105,14 @@ def populate_secondary():
                 parsed_news = []
                 for n in news:
                     c = n.get('content', n) # fallback to flat if old format
+                    related_tickers = extract_yahoo_related_tickers(c)
                     parsed_news.append({
                         'title': c.get('title', ''),
                         'summary': c.get('summary', ''),
                         'pub_date': c.get('pubDate', today),
                         'source': (c.get('provider') or {}).get('displayName', 'Yahoo Finance'),
-                        'url': (c.get('clickThroughUrl') or {}).get('url', '')
+                        'url': (c.get('clickThroughUrl') or {}).get('url', ''),
+                        'related_tickers': related_tickers
                     })
                 
                 # We no longer generate naive sentiment here; handled by pipeline_ai_sentiment.py
@@ -116,10 +120,19 @@ def populate_secondary():
                 for pn in parsed_news:
                     import uuid
                     nid = str(uuid.uuid4())
+                    flags = classify_news(
+                        ticker,
+                        company_name,
+                        pn['title'],
+                        pn['summary'],
+                        pn['related_tickers'],
+                    )
                     news_rows.append((
                         nid, pn['pub_date'], ticker, pn['title'], pn['source'],
                         pn['url'], 'general', 0.5, 0.0, # default 0.0 sentiment
-                        '', '', '', 1, 0, 0, pn['summary'], '', 'ok'
+                        flags['topic_tags'], '', flags['related_tickers'], flags['is_company_specific'],
+                        flags['is_sector_wide'], flags['is_macro_related'], pn['summary'],
+                        '', flags['data_quality_flag']
                     ))
                 
             # Ownership

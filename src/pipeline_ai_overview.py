@@ -45,7 +45,11 @@ def generate_ai_overviews():
         company_desc = row['company_description'] or ""
         
         # Fetch recent news URLs for this ticker
-        df_news = pd.read_sql_query(f"SELECT headline, source, url, published_at FROM news_events WHERE ticker='{ticker}' ORDER BY published_at DESC LIMIT 10", conn)
+        df_news = pd.read_sql_query(
+            "SELECT headline, source, url, published_at FROM news_events WHERE ticker=? AND is_company_specific=1 ORDER BY published_at DESC LIMIT 10",
+            conn,
+            params=(ticker,),
+        )
         
         news_count = len(df_news)
         news_context = ""
@@ -115,7 +119,11 @@ def generate_ai_overviews():
             company_name = row['company_name']
             company_desc = row['company_description'] or ""
             
-            df_news = pd.read_sql_query(f"SELECT headline, source, url, published_at FROM news_events WHERE ticker='{ticker}' ORDER BY published_at DESC LIMIT 10", conn)
+            df_news = pd.read_sql_query(
+                "SELECT headline, source, url, published_at FROM news_events WHERE ticker=? AND is_company_specific=1 ORDER BY published_at DESC LIMIT 10",
+                conn,
+                params=(ticker,),
+            )
             news_count = len(df_news)
             news_context = ""
             

@@ -7,6 +7,11 @@ from tqdm import tqdm
 from src.db_schema import DEFAULT_DB_PATH
 from src.tickers import TICKERS
 from src.relationships import COMPANY_TAGS, BASE_COMPANIES
+from src.thematic_exposures import (
+    derive_semiconductor_category,
+    get_business_role as derive_business_role,
+    score_ticker_exposures,
+)
 
 SEMICONDUCTOR_SUBCATEGORY = {
     'NVDA': 'ai_gpu_accelerator',
@@ -134,13 +139,9 @@ def populate_ticker_master():
             
             # Map category
             old_tag = COMPANY_TAGS.get(ticker, 'other')
-            if old_tag == 'semiconductor' and ticker in SEMICONDUCTOR_SUBCATEGORY:
-                category = SEMICONDUCTOR_SUBCATEGORY[ticker]
-            else:
-                category = old_tag
+            category = derive_semiconductor_category(ticker, old_tag)
                 
-            business_role = get_business_role(category)
-            scores = get_exposure_scores(category)
+            business_role = derive_business_role(category)
             
             # Company name fallback
             company_name = info.get('shortName') or info.get('longName')
@@ -148,6 +149,14 @@ def populate_ticker_master():
                 company_name = BASE_COMPANIES[ticker]['company_name']
             if not company_name:
                 company_name = ticker
+
+            company_description = info.get('longBusinessSummary')
+            scores = score_ticker_exposures(
+                ticker,
+                category,
+                company_name=company_name,
+                description=company_description,
+            )
                 
             market_cap = info.get('marketCap')
             risk_bucket = get_risk_bucket(market_cap)
@@ -172,7 +181,7 @@ def populate_ticker_master():
                 None, None, # gics
                 category,
                 business_role,
-                info.get('longBusinessSummary'),
+                company_description,
                 None, None, None, # products, markets, themes
                 scores['ai'], scores['data_center'], scores['consumer'], scores['automotive'],
                 scores['industrial'], scores['china'], scores['memory'], scores['foundry'],

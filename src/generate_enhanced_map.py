@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 
 from src.db_schema import DEFAULT_DB_PATH
+from src.thematic_exposures import DB_EXPOSURE_COLUMNS, score_ticker_exposures
 
 def generate_enhanced_map():
     conn = sqlite3.connect(DEFAULT_DB_PATH)
@@ -68,8 +69,45 @@ def generate_enhanced_map():
     df_sent = pd.DataFrame()
     if latest_sent_date:
         df_sent = pd.read_sql_query(f"SELECT * FROM sentiment_daily WHERE date = '{latest_sent_date}'", conn)
+
+    if not df_exposures.empty:
+        sent_lookup = {}
+        if not df_sent.empty:
+            sent_lookup = {
+                row['ticker']: row.dropna().to_dict()
+                for _, row in df_sent.iterrows()
+            }
+        if 'energy_exposure_score' not in df_exposures.columns:
+            df_exposures['energy_exposure_score'] = 0.0
+        for idx, row in df_exposures.iterrows():
+            scores = score_ticker_exposures(
+                row.get('ticker'),
+                row.get('semiconductor_category'),
+                company_name=row.get('company_name'),
+                description=row.get('company_description'),
+                products=row.get('main_products'),
+                markets=row.get('main_end_markets'),
+                themes=row.get('main_themes'),
+                sentiment=sent_lookup.get(row.get('ticker'), {}),
+            )
+            for key, column in DB_EXPOSURE_COLUMNS.items():
+                df_exposures.at[idx, column] = scores[key]
+            df_exposures.at[idx, 'energy_exposure_score'] = scores['energy']
         
-    df_news = pd.read_sql_query('SELECT * FROM news_events', conn)
+    df_news = pd.read_sql_query('''
+        SELECT * FROM news_events
+        WHERE is_company_specific = 1
+        ORDER BY published_at DESC
+    ''', conn)
+    df_market_sentiment = pd.read_sql_query('''
+        SELECT * FROM market_sentiment_daily
+        WHERE date = (SELECT MAX(date) FROM market_sentiment_daily)
+    ''', conn)
+    df_sector_sentiment = pd.read_sql_query('''
+        SELECT * FROM sector_sentiment_daily
+        WHERE date = (SELECT MAX(date) FROM sector_sentiment_daily)
+        ORDER BY sector
+    ''', conn)
     
     for ticker in df_nodes['id']:
         d = {}
@@ -104,11 +142,15 @@ def generate_enhanced_map():
     graphData = {
         "nodes": df_nodes.to_dict('records'),
         "edges": df_edges.to_dict('records'),
-        "details": details_dict
+        "details": details_dict,
+        "macro": {
+            "market": df_market_sentiment.iloc[0].dropna().to_dict() if not df_market_sentiment.empty else {},
+            "sectors": df_sector_sentiment.dropna(how='all').to_dict('records') if not df_sector_sentiment.empty else []
+        }
     }
 
     orig_html_path = Path('data/output/relationship_map.html')
-    with open(orig_html_path, 'r') as f:
+    with open(orig_html_path, 'r', encoding='utf-8') as f:
         html = f.read()
         
     # Fix D3 Lag: Increase alphaDecay so physics settle fast, and disable tick rendering when mostly stopped
@@ -205,6 +247,78 @@ def generate_enhanced_map():
   .sp-news-item a { color: #60a5fa; text-decoration: none; font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px; }
   .sp-news-item a:hover { text-decoration: underline; }
   .sp-news-meta { font-size: 10px; color: #64748b; }
+  .sp-summary {
+    font-size: 13px;
+    color: #dbe4f0;
+    line-height: 1.55;
+    margin-bottom: 14px;
+  }
+  .sp-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 4px;
+  }
+  .sp-pill {
+    font-size: 10px;
+    color: #cbd5e1;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    padding: 4px 8px;
+    text-transform: capitalize;
+  }
+  .macro-button {
+    position: fixed;
+    left: 20px;
+    bottom: 20px;
+    z-index: 140;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(12, 16, 30, 0.78);
+    color: #e2e8f0;
+    border-radius: 6px;
+    padding: 8px 11px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    backdrop-filter: blur(14px);
+  }
+  .macro-button:hover { border-color: rgba(96,165,250,0.65); color: #fff; }
+  .energy-button {
+    position: fixed;
+    left: 20px;
+    bottom: 60px;
+    z-index: 140;
+    border: 1px solid rgba(34, 211, 238, 0.35);
+    background: rgba(12, 16, 30, 0.78);
+    color: #cffafe;
+    border-radius: 6px;
+    padding: 8px 11px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    backdrop-filter: blur(14px);
+  }
+  .energy-button:hover { border-color: rgba(34,211,238,0.85); color: #fff; }
+  .sector-button {
+    position: fixed;
+    left: 20px;
+    bottom: 100px;
+    z-index: 140;
+    border: 1px solid rgba(167, 139, 250, 0.35);
+    background: rgba(12, 16, 30, 0.78);
+    color: #ddd6fe;
+    border-radius: 6px;
+    padding: 8px 11px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    backdrop-filter: blur(14px);
+  }
+  .sector-button:hover { border-color: rgba(167,139,250,0.85); color: #fff; }
   
   #radar-chart { width: 100%; height: 260px; margin-top: 10px; }
 """
@@ -224,6 +338,9 @@ def generate_enhanced_map():
   </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<button class="sector-button" id="sector-button">Sector Sentiment</button>
+<button class="energy-button" id="energy-button">Energy Sentiment</button>
+<button class="macro-button" id="macro-button">Macro Sentiment</button>
 """
     
     html = html.replace('<div class="tooltip" id="tooltip"></div>', '<div class="tooltip" id="tooltip"></div>\n' + html_addition)
@@ -242,6 +359,148 @@ def generate_enhanced_map():
   
   let radarChart = null;
 
+  document.getElementById('macro-button').onclick = () => openMacroPanel();
+  document.getElementById('sector-button').onclick = () => openSectorPanel();
+  document.getElementById('energy-button').onclick = () => openEnergyPanel();
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  function formatThemeName(key) {
+    return key.replace(/_sentiment$/, '').replace(/_/g, ' ');
+  }
+
+  function topSentimentThemes(sentiment, limit=3) {
+    const ignored = new Set(['general_sentiment_score', 'risk_sentiment']);
+    return Object.entries(sentiment || {})
+      .filter(([key, val]) => key.endsWith('_sentiment') && !ignored.has(key) && typeof val === 'number' && Math.abs(val) >= 0.15)
+      .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+      .slice(0, limit);
+  }
+
+  function renderPills(items) {
+    if (!items.length) return '';
+    return `<div class="sp-pill-row">${items.map(([key, val]) => `<span class="sp-pill">${escapeHtml(formatThemeName(key))}: ${Number(val).toFixed(2)}</span>`).join('')}</div>`;
+  }
+
+  function buildSentimentSummary(d, details) {
+    const sentiment = details.sentiment || {};
+    const generic = 'Seeded from sentiment_verification_export.csv for macro aggregation.';
+    const stored = sentiment.sentiment_summary;
+    if (stored && stored !== generic) return stored;
+
+    const score = Number(sentiment.general_sentiment_score || 0);
+    const label = score > 0.15 ? 'positive' : score < -0.15 ? 'negative' : 'neutral';
+    const themes = topSentimentThemes(sentiment, 4);
+    const themeText = themes.length
+      ? themes.map(([key, val]) => `${formatThemeName(key)} ${val > 0 ? 'positive' : 'negative'} (${val.toFixed(2)})`).join(', ')
+      : 'no strong single theme';
+    const risk = typeof sentiment.risk_sentiment === 'number'
+      ? ` Risk reads ${sentiment.risk_sentiment >= 0.6 ? 'elevated' : sentiment.risk_sentiment >= 0.3 ? 'moderate' : 'contained'} (${sentiment.risk_sentiment.toFixed(2)}).`
+      : '';
+    const headline = details.news && details.news.length ? ` Latest headline: ${details.news[0].headline || 'not available'}.` : '';
+    return `${d.id} sentiment is ${label} with a general score of ${score.toFixed(2)}. Main drivers: ${themeText}.${risk}${headline}`;
+  }
+
+  function buildCompanyOverview(d, details) {
+    if (d.ai_overview) return d.ai_overview;
+    const market = details.market || {};
+    const sentiment = details.sentiment || {};
+    const tag = TAG_LABELS[d.tag] || d.tag || 'semiconductor';
+    const move = typeof market.return_1d === 'number'
+      ? ` Latest daily return is ${(market.return_1d * 100).toFixed(2)}%`
+      : '';
+    const general = typeof sentiment.general_sentiment_score === 'number'
+      ? ` with sentiment score ${sentiment.general_sentiment_score.toFixed(2)}`
+      : '';
+    const themes = topSentimentThemes(sentiment, 3).map(([key]) => formatThemeName(key));
+    const themeText = themes.length ? ` Current narrative is most tied to ${themes.join(', ')}.` : '';
+    return `${d.company || d.id} is classified as ${tag}.${move}${general}.${themeText}`.trim();
+  }
+
+  function openMacroPanel() {
+    const macro = graphData.macro || {};
+    const market = macro.market || {};
+    sidePanel.classList.add('open');
+    document.getElementById('sp-ticker').textContent = 'Macro';
+    document.getElementById('sp-company').textContent = market.date ? `Semiconductor market sentiment, ${market.date}` : 'Semiconductor market sentiment';
+    const tagEl = document.getElementById('sp-tag');
+    tagEl.textContent = 'Market';
+    tagEl.style.background = '#60a5fa22';
+    tagEl.style.color = '#60a5fa';
+
+    let contentHtml = '';
+    if (market.macro_market_overview) {
+      contentHtml += `<div class="sp-section"><h3>Market Overview</h3><div class="sp-summary">${escapeHtml(market.macro_market_overview)}</div>`;
+      contentHtml += generateGridHTML(market, ['date', 'macro_market_overview'], true);
+      contentHtml += `</div>`;
+    }
+    document.getElementById('sp-content').innerHTML = contentHtml || '<div class="sp-section"><div class="sp-summary">No macro sentiment data is available yet.</div></div>';
+  }
+
+  function openSectorPanel() {
+    const sectors = graphData.macro?.sectors || [];
+    sidePanel.classList.add('open');
+    document.getElementById('sp-ticker').textContent = 'Sectors';
+    document.getElementById('sp-company').textContent = sectors.length && sectors[0].date ? `Sector sentiment, ${sectors[0].date}` : 'Sector sentiment';
+    const tagEl = document.getElementById('sp-tag');
+    tagEl.textContent = 'Sector Breakdown';
+    tagEl.style.background = '#a78bfa22';
+    tagEl.style.color = '#c4b5fd';
+
+    let contentHtml = '';
+    if (sectors.length) {
+      contentHtml += `<div class="sp-section"><h3>Sector Overviews</h3>`;
+      sectors.forEach(sector => {
+        contentHtml += `
+          <div class="sp-news-item">
+            <div style="font-size: 12px; font-weight: 700; color: #e2e8f0; text-transform: capitalize; margin-bottom: 4px;">${escapeHtml(sector.sector)}</div>
+            <div class="sp-summary">${escapeHtml(sector.sector_overview || '')}</div>
+            ${renderPills(topSentimentThemes(sector, 3))}
+          </div>
+        `;
+      });
+      contentHtml += `</div>`;
+    }
+    document.getElementById('sp-content').innerHTML = contentHtml || '<div class="sp-section"><div class="sp-summary">No sector sentiment data is available yet.</div></div>';
+  }
+
+  function openEnergyPanel() {
+    const sectors = graphData.macro?.sectors || [];
+    const energySector = sectors.find(sector => sector.sector === 'energy');
+    sidePanel.classList.add('open');
+    document.getElementById('sp-ticker').textContent = 'Energy';
+    document.getElementById('sp-company').textContent = energySector?.date ? `Energy / solar sentiment, ${energySector.date}` : 'Energy / solar sentiment';
+    const tagEl = document.getElementById('sp-tag');
+    tagEl.textContent = 'Energy / Solar';
+    tagEl.style.background = '#22d3ee22';
+    tagEl.style.color = '#67e8f9';
+
+    if (!energySector) {
+      document.getElementById('sp-content').innerHTML = '<div class="sp-section"><div class="sp-summary">No energy sentiment data is available yet.</div></div>';
+      return;
+    }
+
+    let contentHtml = `
+      <div class="sp-section" style="background: rgba(34, 211, 238, 0.06); border-color: rgba(34, 211, 238, 0.22);">
+        <h3 style="color: #67e8f9;">Energy / Solar Sentiment</h3>
+        <div class="sp-summary">${escapeHtml(energySector.sector_overview || '')}</div>
+        ${renderPills([
+          ['general_sentiment_score', energySector.general_sentiment_score],
+          ['ai_demand_sentiment', energySector.ai_demand_sentiment],
+          ['consumer_demand_sentiment', energySector.consumer_demand_sentiment],
+          ['analyst_sentiment', energySector.analyst_sentiment],
+          ['risk_sentiment', energySector.risk_sentiment]
+        ].filter(([, val]) => typeof val === 'number'))}
+        ${generateGridHTML(energySector, ['date', 'sector', 'sector_overview'], true)}
+      </div>
+    `;
+    document.getElementById('sp-content').innerHTML = contentHtml;
+  }
+
   function generateGridHTML(dataObj, skipKeys=[], skipZeroes=false) {
     let html = '<div class="sp-grid">';
     for (const [key, val] of Object.entries(dataObj)) {
@@ -256,7 +515,7 @@ def generate_enhanced_map():
       }
       
       let label = key.replace(/_/g, ' ');
-      html += `<div class="sp-metric"><span class="sp-m-label">${label}</span><span class="sp-m-value">${fmtVal}</span></div>`;
+      html += `<div class="sp-metric"><span class="sp-m-label">${escapeHtml(label)}</span><span class="sp-m-value">${escapeHtml(fmtVal)}</span></div>`;
     }
     html += '</div>';
     return html;
@@ -287,11 +546,12 @@ def generate_enhanced_map():
       const details = graphData.details[d.id] || {};
       let contentHtml = '';
       
-      if (d.ai_overview) {
+      const companyOverview = buildCompanyOverview(d, details);
+      if (companyOverview) {
         contentHtml += `
           <div class="sp-section" style="background: rgba(124, 58, 237, 0.05); border: 1px solid rgba(124, 58, 237, 0.2);">
             <h3 style="color: #c4b5fd;">✨ AI Overview</h3>
-            <div style="font-size: 13px; color: #e2e8f0; line-height: 1.6; white-space: pre-wrap;">${d.ai_overview}</div>
+            <div class="sp-summary">${escapeHtml(companyOverview)}</div>
           </div>
         `;
       }
@@ -322,7 +582,9 @@ def generate_enhanced_map():
       
       if (details.sentiment) {
         contentHtml += `<div class="sp-section"><h3>📰 News Sentiment & Context</h3>`;
-        contentHtml += generateGridHTML(details.sentiment, ['ticker', 'date'], true);
+        contentHtml += `<div class="sp-summary">${escapeHtml(buildSentimentSummary(d, details))}</div>`;
+        contentHtml += renderPills(topSentimentThemes(details.sentiment, 5));
+        contentHtml += generateGridHTML(details.sentiment, ['ticker', 'date', 'sentiment_summary'], true);
         
         if (details.news && details.news.length > 0) {
           contentHtml += `<div style="margin-top: 16px;">`;
@@ -369,12 +631,12 @@ def generate_enhanced_map():
       
       if (details.master) {
         const exp = details.master;
-        const labels = ['AI', 'Data Center', 'Consumer', 'Automotive', 'Industrial', 'China', 'Memory', 'Foundry', 'Equipment', 'Optical'];
+        const labels = ['AI', 'Data Center', 'Consumer', 'Automotive', 'Industrial', 'China', 'Memory', 'Foundry', 'Equipment', 'Optical', 'Energy/Grid'];
         const data = [
           exp.ai_exposure_score||0, exp.data_center_exposure_score||0, exp.consumer_exposure_score||0, 
           exp.automotive_exposure_score||0, exp.industrial_exposure_score||0, exp.china_exposure_score||0, 
           exp.memory_cycle_exposure_score||0, exp.foundry_exposure_score||0, exp.equipment_cycle_exposure_score||0,
-          exp.optical_networking_exposure_score||0
+          exp.optical_networking_exposure_score||0, exp.energy_exposure_score||0
         ];
         
         const canvasEl = document.getElementById('radar-chart');
@@ -434,7 +696,7 @@ def generate_enhanced_map():
     
     output_path = Path('data/output/relationship_map_v4.html')
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, 'w') as f:
+    with open(output_path, 'w', encoding='utf-8') as f:
         f.write(html)
         
     print(f"Enhanced map saved to {output_path}")

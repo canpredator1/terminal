@@ -38,12 +38,12 @@ def export_verification_csv():
     urls_list = []
     
     for ticker in df_sentiment['ticker']:
-        df_news = pd.read_sql_query(f"""
+        df_news = pd.read_sql_query("""
             SELECT headline, url 
             FROM news_events 
-            WHERE ticker='{ticker}' 
+            WHERE ticker=? AND is_company_specific=1
             ORDER BY published_at DESC LIMIT 10
-        """, conn)
+        """, conn, params=(ticker,))
         
         headlines = " | ".join(df_news['headline'].dropna().tolist())
         urls = " | ".join(df_news['url'].dropna().tolist())
